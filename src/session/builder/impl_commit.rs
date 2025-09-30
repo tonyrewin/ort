@@ -41,10 +41,14 @@ impl SessionBuilder {
 
 	#[cfg(all(feature = "fetch-models", feature = "std", not(target_arch = "wasm32")))]
 	fn download(url: &str) -> Result<PathBuf> {
+		#[cfg(not(target_os = "android"))]
 		use ureq::{
 			config::Config,
 			tls::{RootCerts, TlsConfig, TlsProvider}
 		};
+		
+		#[cfg(target_os = "android")]
+		use ureq::config::Config;
 
 		#[cfg(target_os = "android")]
 		let mut download_dir = std::path::PathBuf::from("/data/local/tmp/onnxruntime/models");
@@ -68,23 +72,27 @@ impl SessionBuilder {
 		} else {
 			crate::info!(model_filepath = format!("{}", model_filepath.display()).as_str(), url = format!("{url:?}").as_str(), "Downloading model");
 
-			let agent = Config::builder()
-				.tls_config(
-					TlsConfig::builder()
-						.root_certs(RootCerts::WebPki)
-						.provider(if cfg!(any(feature = "tls-rustls", feature = "tls-rustls-no-provider")) {
-							TlsProvider::Rustls
-						} else if cfg!(any(feature = "tls-native", feature = "tls-native-vendored")) {
-							TlsProvider::NativeTls
-						} else {
-							return Err(Error::new(
-								"No TLS provider configured. When using `fetch-models` with HTTPS URLs, a `tls-*` feature must be enabled."
-							));
-						})
-						.build()
-				)
-				.build()
-				.new_agent();
+		#[cfg(not(target_os = "android"))]
+		let agent = Config::builder()
+			.tls_config(
+				TlsConfig::builder()
+					.root_certs(RootCerts::WebPki)
+					.provider(if cfg!(any(feature = "tls-rustls", feature = "tls-rustls-no-provider")) {
+						TlsProvider::Rustls
+					} else if cfg!(any(feature = "tls-native", feature = "tls-native-vendored")) {
+						TlsProvider::NativeTls
+					} else {
+						return Err(Error::new(
+							"No TLS provider configured. When using `fetch-models` with HTTPS URLs, a `tls-*` feature must be enabled."
+						));
+					})
+					.build()
+			)
+			.build()
+			.new_agent();
+			
+		#[cfg(target_os = "android")]
+		let agent = Config::builder().build().new_agent();
 
 			let resp = agent.get(url).call().map_err(|e| Error::new(format!("Error downloading to file: {e}")))?;
 
