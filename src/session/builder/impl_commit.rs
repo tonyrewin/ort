@@ -46,6 +46,10 @@ impl SessionBuilder {
 			tls::{RootCerts, TlsConfig, TlsProvider}
 		};
 
+		#[cfg(target_os = "android")]
+		let mut download_dir = std::path::PathBuf::from("/data/local/tmp/onnxruntime/models");
+		
+		#[cfg(not(target_os = "android"))]
 		let mut download_dir = ort_sys::internal::dirs::cache_dir()
 			.expect("could not determine cache directory")
 			.join("models");
