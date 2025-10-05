@@ -71,12 +71,11 @@ impl SessionBuilder {
 
 			let resp = agent.get(url).call().map_err(|e| Error::new(format!("Error downloading to file: {e}")))?;
 
-			let len = resp
-				.headers()
-				.get("Content-Length")
-				.and_then(|h| h.to_str().ok())
-				.and_then(|s| s.parse::<usize>().ok())
-				.expect("Missing Content-Length header");
+		// ureq 2.x API
+		let len = resp
+			.header("content-length")
+			.and_then(|s| s.parse::<usize>().ok())
+			.expect("Missing Content-Length header");
 			crate::info!(len, "Downloading {} bytes", len);
 
 			// ureq 2.x API - прямой доступ к reader
