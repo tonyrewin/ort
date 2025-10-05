@@ -79,7 +79,8 @@ impl SessionBuilder {
 				.expect("Missing Content-Length header");
 			crate::info!(len, "Downloading {} bytes", len);
 
-			let mut reader = resp.into_body().into_with_config().limit(u64::MAX).reader();
+			// ureq 2.x API - прямой доступ к reader
+		let mut reader = resp.into_reader();
 			let temp_filepath = download_dir.join(format!("tmp_{}.{model_filename}", ort_sys::internal::random_identifier()));
 
 			let f = std::fs::File::create(&temp_filepath).expect("Failed to create model file");
