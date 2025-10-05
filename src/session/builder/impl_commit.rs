@@ -34,21 +34,15 @@ impl SessionBuilder {
 	/// Downloads a pre-trained ONNX model from the given URL and builds the session.
 	#[cfg(all(feature = "fetch-models", feature = "std", not(target_arch = "wasm32")))]
 	#[cfg_attr(docsrs, doc(cfg(all(feature = "fetch-models", feature = "std"))))]
+	#[cfg(all(feature = "fetch-models", any(feature = "tls-rustls", feature = "tls-rustls-no-provider", feature = "tls-native", feature = "tls-native-vendored")))]
 	pub fn commit_from_url(self, model_url: impl AsRef<str>) -> Result<Session> {
 		let downloaded_path = SessionBuilder::download(model_url.as_ref())?;
 		self.commit_from_file(downloaded_path)
 	}
 
-	#[cfg(all(feature = "fetch-models", feature = "std", not(target_arch = "wasm32")))]
+	#[cfg(all(feature = "fetch-models", feature = "std", not(target_arch = "wasm32"), any(feature = "tls-rustls", feature = "tls-rustls-no-provider", feature = "tls-native", feature = "tls-native-vendored")))]
 	fn download(url: &str) -> Result<PathBuf> {
-		#[cfg(not(target_os = "android"))]
-		use ureq::{
-			config::Config,
-			tls::{RootCerts, TlsConfig, TlsProvider}
-		};
-		
-		#[cfg(target_os = "android")]
-		use ureq::config::Config;
+		// ureq 2.x не требует явной настройки TLS
 
 		#[cfg(target_os = "android")]
 		let mut download_dir = std::path::PathBuf::from("/data/local/tmp/onnxruntime/models");
@@ -72,27 +66,8 @@ impl SessionBuilder {
 		} else {
 			crate::info!(model_filepath = format!("{}", model_filepath.display()).as_str(), url = format!("{url:?}").as_str(), "Downloading model");
 
-		#[cfg(not(target_os = "android"))]
-		let agent = Config::builder()
-			.tls_config(
-				TlsConfig::builder()
-					.root_certs(RootCerts::WebPki)
-					.provider(if cfg!(any(feature = "tls-rustls", feature = "tls-rustls-no-provider")) {
-						TlsProvider::Rustls
-					} else if cfg!(any(feature = "tls-native", feature = "tls-native-vendored")) {
-						TlsProvider::NativeTls
-					} else {
-						return Err(Error::new(
-							"No TLS provider configured. When using `fetch-models` with HTTPS URLs, a `tls-*` feature must be enabled."
-						));
-					})
-					.build()
-			)
-			.build()
-			.new_agent();
-			
-		#[cfg(target_os = "android")]
-		let agent = Config::builder().build().new_agent();
+		// ureq 2.x - простой агент с TLS по умолчанию
+		let agent = ureq::AgentBuilder::new().build();
 
 			let resp = agent.get(url).call().map_err(|e| Error::new(format!("Error downloading to file: {e}")))?;
 

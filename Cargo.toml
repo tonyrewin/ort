@@ -48,7 +48,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 rustdoc-args = [ "--cfg", "docsrs" ]
 
 [features]
-default = [ "std", "ndarray", "tracing", "download-binaries", "tls-native", "copy-dylibs" ]
+default = [ "std", "ndarray", "tracing", "download-binaries", "copy-dylibs" ]
 
 std = [ "ort-sys/std", "ndarray/std", "tracing?/std" ]
 training = [ "ort-sys/training" ]
@@ -58,7 +58,7 @@ half = [ "dep:half" ]
 num-complex = [ "dep:num-complex" ]
 tracing = [ "dep:tracing" ]
 
-fetch-models = [ "std", "dep:ureq", "dep:sha2" ]
+fetch-models = [ "std", "dep:ureq", "dep:sha2", "tls-native" ]
 download-binaries = [ "ort-sys/download-binaries" ]
 load-dynamic = [ "std", "libloading", "ort-sys/disable-linking" ]
 copy-dylibs = [ "ort-sys/copy-dylibs" ]
@@ -67,6 +67,9 @@ tls-rustls = [ "ort-sys/tls-rustls", "ureq?/rustls" ]
 tls-rustls-no-provider = [ "ort-sys/tls-rustls-no-provider", "ureq?/rustls-no-provider" ]
 tls-native = [ "ort-sys/tls-native", "ureq?/native-tls" ]
 tls-native-vendored = [ "ort-sys/tls-native-vendored", "ureq?/native-tls", "ureq?/vendored" ]
+
+# Автоматически включаем TLS если используется fetch-models
+fetch-models-with-tls = [ "fetch-models", "tls-native" ]
 
 alternative-backend = [ "ort-sys/disable-linking" ]
 
@@ -97,7 +100,7 @@ smallvec = { version = "=2.0.0-alpha.10", default-features = false }
 
 ndarray = { version = "0.16", default-features = false, optional = true }
 libloading = { version = "0.8", optional = true }
-ureq = { version = "3", optional = true, default-features = false }
+ureq = { version = "2.10", optional = true, default-features = false, features = ["native-tls"] }
 sha2 = { version = "0.10", optional = true }
 tracing = { version = "0.1", optional = true, default-features = false }
 half = { version = "2.1", default-features = false, optional = true }
@@ -105,7 +108,7 @@ num-complex = { version = "0.4", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow = "1.0"
-ureq = { version = "3", default-features = false, features = [ "native-tls" ] }
+ureq = { version = "2.10", default-features = false, features = [ "native-tls" ] }
 image = "0.25"
 tracing-subscriber = { version = "0.3", default-features = false, features = [ "env-filter", "fmt" ] }
 tokio = { version = "1.36", features = [ "test-util" ] }
